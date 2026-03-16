@@ -31,7 +31,7 @@
             statusDiv.innerText = "Procesando en la nube...";
             statusDiv.style.color = "#1a73e8";
         
-            const scriptURL = "https://script.google.com/macros/s/AKfycbxHuFlGL11ZG1bBjH0TRlPULx1aYuFiJ_FIlC6lDdKBLD2Nd5Q5QEDYSE5nG_6w7-9w/exec";
+            const scriptURL = "https://script.google.com/macros/s/AKfycbwtIz-2a51O5xrc3m1dfaOOi91lWdPyHmd7MqtX_CE/dev";
         
             // Quitamos 'no-cors' para poder leer la respuesta
             fetch(`${scriptURL}?qr=${encodeURIComponent(decodedText)}&folderId=${folderId}`)
