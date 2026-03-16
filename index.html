@@ -34,7 +34,7 @@
             const scriptURL = "https://script.google.com/macros/s/AKfycbyx262Rfb4jzi2tks9tIUcCZpFdRv92dy-svZJAz2lQ8My3ZUsrid4tSRV6s84O-gUS/exec";
         
             // Quitamos 'no-cors' para poder leer la respuesta
-            fetch(`${scriptURL}?qr=${encodeURIComponent(decodedText)}&folderId=${folderId}`)
+            fetch(`${scriptURL}?qr=${decodedText}&folderId=${folderId}`)
             .then(response => response.text()) // Convertimos la respuesta a texto
             .then(textoServidor => {
                 // Mostramos el resultado real del Apps Script
