@@ -62,7 +62,13 @@
 
         function startScanner() {
             const html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: 250 },
+                onScanSuccess
+            ).catch(err => {
+                document.getElementById('status').innerText = "Error: " + err;
+            });
         }
     </script>
 </body>
