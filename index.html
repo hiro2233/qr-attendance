@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
+        #reader { width: 100%; max-width: 400px; margin: auto; border-radius: 15px; overflow: hidden; }
+        #status { margin-top: 20px; font-weight: bold; color: #1a73e8; }
+    </style>
+</head>
+<body>
+    <h2 id="titulo">OXFORD ASISTENCIA</h2>
+    <div id="reader"></div>
+    <div id="status">Iniciando escáner...</div>
+
+    <script>
+        // CAPTURAR EL ID DESDE LA URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const folderId = urlParams.get('folderId');
+
+        if (!folderId) {
+            document.getElementById('status').innerHTML = "<span style='color:red'>Error: No se encontró ID de carpeta en el botón de Google Sites.</span>";
+        } else {
+            startScanner();
+        }
+        
+        function onScanSuccess(decodedText) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerText = "Procesando en la nube...";
+            statusDiv.style.color = "#1a73e8";
+        
+            const scriptURL = "https://script.google.com/macros/s/AKfycbxHuFlGL11ZG1bBjH0TRlPULx1aYuFiJ_FIlC6lDdKBLD2Nd5Q5QEDYSE5nG_6w7-9w/exec";
+        
+            // Quitamos 'no-cors' para poder leer la respuesta
+            fetch(`${scriptURL}?qr=${encodeURIComponent(decodedText)}&folderId=${folderId}`)
+            .then(response => response.text()) // Convertimos la respuesta a texto
+            .then(textoServidor => {
+                // Mostramos el resultado real del Apps Script
+                statusDiv.innerText = textoServidor;
+                
+                // Cambiamos color según el éxito o error
+                if (textoServidor.includes("✅")) {
+                    statusDiv.style.color = "green";
+                } else if (textoServidor.includes("❌")) {
+                    statusDiv.style.color = "red";
+                }
+        
+                // Limpiar después de 3 segundos para el siguiente alumno
+                setTimeout(() => { 
+                    statusDiv.innerText = "Listo para el siguiente"; 
+                    statusDiv.style.color = "#1a73e8";
+                }, 3000);
+            })
+            .catch(err => {
+                statusDiv.innerText = "❌ Error de conexión con el servidor";
+                statusDiv.style.color = "red";
+                console.error(err);
+            });
+        }
+
+        function startScanner() {
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
+        }
+    </script>
+</body>
+</html>
