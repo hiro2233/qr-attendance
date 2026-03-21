@@ -5,58 +5,154 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
-        #reader { width: 100%; max-width: 400px; margin: auto; border-radius: 15px; overflow: hidden; }
-        #status { margin-top: 20px; font-weight: bold; color: #1a73e8; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 2px; background: #f0f2f5; color: #2c3e50; }
+        #reader { width: 100%; max-width: 400px; margin: 0 auto; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
+        /* Contenedor principal de previsualización */
+        #preview { 
+            margin: 15px auto; padding: 12px; background: white; 
+            border-radius: 10px; display: none; max-width: 370px;
+            border-left: 5px solid #27ae60; text-align: left;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        /* Contenedor para poner Curso y Materia lado a lado */
+        .row {
+            display: flex;
+            justify-content: space-between; /* Separa los dos elementos */
+            gap: 15px; /* Espacio entre columnas */
+            margin-top: 8px;
+        }
+
+        .col {
+            flex: 1; /* Hace que ambas columnas ocupen el mismo espacio */
+        }
+
+        #preview p { margin: 0; font-size: 15px; }
+        .label { font-weight: bold; color: #7f8c8d; font-size: 11px; text-transform: uppercase; }
+        .data { font-size: 16px; font-weight: bold; color: #2c3e50; display: block; margin-top: 2px; }
+
+        #status { margin-top: 15px; font-weight: bold; color: #1a73e8; min-height: 24px; }
+        
+        #btnEnviar { 
+            margin-top: 10px; padding: 18px; font-size: 18px; 
+            background-color: #27ae60; color: white; border: none; 
+            border-radius: 10px; cursor: pointer; display: none; 
+            width: 100%; max-width: 400px; font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        #btnEnviar:active { transform: scale(0.98); }
+        #btnEnviar:disabled {
+            background-color: #95a5a6 !important; /* Gris */
+            cursor: not-allowed;
+            opacity: 0.7;
+            /* ESTO DETIENE EL HUNDIMIENTO */
+            transform: none !important; 
+            box-shadow: none !important;
+            pointer-events: none; /* Esta línea es "magia": ignora los toques por completo */
+        }
+        h2 {
+            margin-top: 2px;    /* Título más pegado al borde superior */
+            margin-bottom: 2px; /* Menos espacio entre el título y el escáner */
+            font-size: 1.2rem;   /* Un poco más pequeño para ahorrar espacio vertical */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 <body>
-    <h2 id="titulo">OXFORD ASISTENCIA</h2>
+    <h2>OXFORD ASISTENCIA</h2>
     <div id="reader"></div>
-    <div id="status">Iniciando escáner...</div>
+
+    <div id="preview">
+        <p>
+            <span class="label">Estudiante:</span>
+            <span id="viewNombre" class="data">---</span>
+        </p>
+
+        <div class="row">
+            <div class="col">
+                <p>
+                    <span class="label">Curso:</span>
+                    <span id="viewCurso" class="data">---</span>
+                </p>
+            </div>
+            <div class="col">
+                <p>
+                    <span class="label">Materia:</span>
+                    <span id="viewMateria" class="data">---</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <button id="btnEnviar" onclick="enviarDatos()">CONFIRMAR ASISTENCIA</button>
+    
+    <div id="status">Esperando código QR...</div>
 
     <script>
-        // CAPTURAR EL ID DESDE LA URL
         const urlParams = new URLSearchParams(window.location.search);
         const folderId = urlParams.get('folderId');
+        let ultimoQR = ""; 
 
         if (!folderId) {
-            document.getElementById('status').innerHTML = "<span style='color:red'>Error: No se encontró ID de carpeta en el botón de Google Sites.</span>";
+            document.getElementById('status').innerHTML = "<b style='color:red'>Error: Falta ID de Carpeta</b>";
         } else {
             startScanner();
         }
-        
+
         function onScanSuccess(decodedText) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.innerText = "Procesando en la nube...";
-            statusDiv.style.color = "#1a73e8";
-        
-            const scriptURL = "https://script.google.com/macros/s/AKfycbyx262Rfb4jzi2tks9tIUcCZpFdRv92dy-svZJAz2lQ8My3ZUsrid4tSRV6s84O-gUS/exec";
-        
-            // Quitamos 'no-cors' para poder leer la respuesta
-            fetch(`${scriptURL}?qr=${decodedText}&folderId=${folderId}`)
-            .then(response => response.text()) // Convertimos la respuesta a texto
-            .then(textoServidor => {
-                // Mostramos el resultado real del Apps Script
-                statusDiv.innerText = textoServidor;
+            const btn = document.getElementById('btnEnviar');
+            const preview = document.getElementById('preview');
+            
+            if (decodedText !== ultimoQR) {
+                ultimoQR = decodedText;
                 
-                // Cambiamos color según el éxito o error
-                if (textoServidor.includes("✅")) {
-                    statusDiv.style.color = "green";
-                } else if (textoServidor.includes("❌")) {
-                    statusDiv.style.color = "red";
+                // Separamos los datos del QR: "ID, Nombre, Curso"
+                const partes = decodedText.split(',');
+                if (partes.length >= 4) {
+                    document.getElementById('viewNombre').innerText = partes[1].trim();
+                    document.getElementById('viewCurso').innerText = partes[2].trim();
+                    document.getElementById('viewMateria').innerText = partes[3].trim();
+                    
+                    preview.style.display = "block";
+                    btn.style.display = "inline-block";
+                    document.getElementById('status').innerText = "Verifica los datos arriba";
+                    document.getElementById('status').style.color = "#1a73e8";
                 }
-        
-                // Limpiar después de 3 segundos para el siguiente alumno
-                setTimeout(() => { 
-                    statusDiv.innerText = "Listo para el siguiente"; 
-                    statusDiv.style.color = "#1a73e8";
-                }, 3000);
+            }
+        }
+
+        function enviarDatos() {
+            const statusDiv = document.getElementById('status');
+            const btn = document.getElementById('btnEnviar');
+            const preview = document.getElementById('preview');
+            const statusdoc = document.getElementById('status');
+            
+            btn.disabled = true;
+            statusDiv.innerText = "Registrando...";
+
+            const scriptURL = "https://script.google.com/macros/s/AKfycbyNJTy48mbkBKeosz6yaBfNNd_ObhdSRBj6H2dqyAHndwGOrCKjTx6VVck9PiegFzWO/exec";
+
+            fetch(`${scriptURL}?qr=${encodeURIComponent(ultimoQR)}&folderId=${folderId}`)
+            .then(response => response.text())
+            .then(textoServidor => {
+                statusdoc.innerText = textoServidor;
+                if (textoServidor.includes("✅")) {
+                    statusdoc.style.color = "green";
+                    //btn.style.display = "none";
+                    //preview.style.display = "none";
+                    //ultimoQR = "";
+                    btn.disabled = false;
+                } else {
+                    statusdoc.style.color = "red";
+                    btn.disabled = false;
+                }
             })
             .catch(err => {
-                statusDiv.innerText = "❌ Error de conexión con el servidor";
-                statusDiv.style.color = "red";
-                console.error(err);
+                statusdoc.innerText = "❌ Error de red";
+                statusdoc.style.color = "red";
+                btn.disabled = false;
             });
         }
 
@@ -66,9 +162,7 @@
                 { facingMode: "environment" }, 
                 { fps: 10, qrbox: 250 },
                 onScanSuccess
-            ).catch(err => {
-                document.getElementById('status').innerText = "Error: " + err;
-            });
+            );
         }
     </script>
 </body>
