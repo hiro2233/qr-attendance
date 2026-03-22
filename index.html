@@ -1,52 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISTEMA ASISTENCIA - OXFORD</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 10px; background: #f0f2f5; color: #2c3e50; margin: 0; }
-        #reader { width: 100%; max-width: 350px; margin: 0 auto; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        
-        /* Contenedor principal de previsualización */
-        #preview { 
-            margin: 10px auto; padding: 12px; background: white; 
-            border-radius: 10px; display: none; max-width: 370px;
-            border-left: 5px solid #27ae60; text-align: left;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-
-        .row { display: flex; justify-content: space-between; gap: 10px; margin-top: 5px; }
-        .col { flex: 1; }
-        #preview p { margin: 2px 0; font-size: 14px; }
-        .label { font-weight: bold; color: #7f8c8d; font-size: 10px; text-transform: uppercase; }
-        .data { font-size: 15px; font-weight: bold; color: #2c3e50; display: block; }
-
-        /* Sección de Ficha de Incidencias */
-        #incidenciasSection { display: none; margin-top: 10px; background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-        
-        .btn-incidencia { 
-            padding: 10px 5px; font-size: 12px; border: none; border-radius: 5px; 
-            cursor: pointer; font-weight: bold; color: white; transition: 0.2s;
-        }
-        .btn-aula { background: #f39c12; } /* -2 pts */
-        .btn-casa { background: #e74c3c; } /* -5 pts */
-        .btn-permiso { background: #3498db; } /* Permisos */
-        
-        #btnEnviar { 
-            margin-top: 10px; padding: 15px; font-size: 16px; 
-            background-color: #27ae60; color: white; border: none; 
-            border-radius: 10px; cursor: pointer; display: none; 
-            width: 100%; max-width: 390px; font-weight: bold;
-        }
-
-        #status { margin-top: 10px; font-weight: bold; color: #1a73e8; font-size: 14px; }
-        h2 { margin: 5px 0; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
-    </style>
 </head>
 <body>
     <h2>SISTEMA ASISTENCIA - LABORATORIO</h2>
+    
     <div id="reader"></div>
     
     <div id="preview">
@@ -57,121 +20,28 @@
         </div>
 
         <div id="incidenciasSection">
-            <span class="label">Panel de Incidencias (SER):</span>
+            <span class="label">Control de Materiales (SER):</span>
+            <div class="checkbox-group">
+                <label class="check-item">
+                    <input type="checkbox" id="checkAula"> Olvido en Aula (-2)
+                </label>
+                <label class="check-item">
+                    <input type="checkbox" id="checkCasa"> Olvido en Casa (-5)
+                </label>
+            </div>
+            
+            <span class="label">Gestión de Tiempos:</span>
             <div class="btn-group">
-                <button class="btn-incidencia btn-aula" onclick="registrarIncidencia('OLVIDO_AULA')">OLVIDO AULA (-2)</button>
-                <button class="btn-incidencia btn-casa" onclick="registrarIncidencia('OLVIDO_CASA')">OLVIDO CASA (-5)</button>
-                <button class="btn-incidencia btn-permiso" id="btnPermiso" onclick="gestionarPermiso()">SALIDA BAÑO/AULA</button>
-                <button class="btn-incidencia" style="background:#95a5a6" onclick="resetFicha()">LIMPIAR FICHA</button>
+                <button class="btn-incidencia btn-permiso" id="btnPermiso">SALIDA BAÑO/AULA</button>
+                <button class="btn-incidencia btn-reset" id="btnReset">LIMPIAR FICHA</button>
             </div>
         </div>
     </div>
 
-    <button id="btnEnviar" onclick="enviarDatos()">CONFIRMAR ASISTENCIA</button>
+    <button id="btnEnviar">CONFIRMAR ASISTENCIA</button>
+    
     <div id="status">Esperando código QR...</div>
 
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const folderId = urlParams.get('folderId');
-        const scriptURL = "https://script.google.com/macros/s/AKfycbyoM6VZv-Gbg91A3uvjtiocMJRNICrb9vGdY5avzXgEWffrgUjVMJNP3cdy3KNLDINH/exec"; // Reemplaza con tu URL real
-        
-        let ultimoQR = ""; 
-        let estadoPermiso = "IN"; // IN o OUT
-
-        if (!folderId) {
-            document.getElementById('status').innerHTML = "<b style='color:red'>Error: Falta ID de Carpeta</b>";
-        } else {
-            startScanner();
-        }
-
-        function onScanSuccess(decodedText) {
-            const btn = document.getElementById('btnEnviar');
-            const preview = document.getElementById('preview');
-            const incidencias = document.getElementById('incidenciasSection');
-            
-            if (decodedText !== ultimoQR) {
-                ultimoQR = decodedText;
-                const partes = decodedText.split(',');
-                if (partes.length >= 4) {
-                    document.getElementById('viewNombre').innerText = partes[1].trim();
-                    document.getElementById('viewCurso').innerText = partes[2].trim();
-                    document.getElementById('viewMateria').innerText = partes[3].trim();
-                    
-                    preview.style.display = "block";
-                    incidencias.style.display = "block";
-                    btn.style.display = "inline-block";
-                    document.getElementById('status').innerText = "Ficha de sesión activa";
-                }
-            }
-        }
-
-        // Función para enviar Asistencia Normal
-        function enviarDatos() {
-            ejecutarFetch(`${scriptURL}?qr=${encodeURIComponent(ultimoQR)}&folderId=${folderId}&accion=ASISTENCIA`);
-        }
-
-        // Función para enviar Incidencias (Olvidos)
-        function registrarIncidencia(tipo) {
-            if(!confirm(`¿Registrar incidencia: ${tipo}?`)) return;
-            ejecutarFetch(`${scriptURL}?qr=${encodeURIComponent(ultimoQR)}&folderId=${folderId}&accion=INCIDENCIA&tipo=${tipo}`);
-        }
-
-        // Gestión de Permisos (Salida/Retorno)
-        function gestionarPermiso() {
-            const btn = document.getElementById('btnPermiso');
-            const accion = (estadoPermiso === "IN") ? "SALIDA" : "RETORNO";
-            
-            ejecutarFetch(`${scriptURL}?qr=${encodeURIComponent(ultimoQR)}&folderId=${folderId}&accion=${accion}`);
-            
-            // Cambio visual del botón
-            if (estadoPermiso === "IN") {
-                btn.innerText = "RETORNO (En proceso...)";
-                btn.style.background = "#2c3e50";
-                estadoPermiso = "OUT";
-            } else {
-                btn.innerText = "SALIDA BAÑO/AULA";
-                btn.style.background = "#3498db";
-                estadoPermiso = "IN";
-            }
-        }
-
-        function ejecutarFetch(url) {
-            const statusdoc = document.getElementById('status');
-            const btn = document.getElementById('btnEnviar');
-            
-            statusdoc.innerText = "Procesando en Servidor...";
-            btn.disabled = true;
-
-            fetch(url)
-            .then(response => response.text())
-            .then(texto => {
-                statusdoc.innerText = texto;
-                statusdoc.style.color = texto.includes("✅") ? "green" : "red";
-                btn.disabled = false;
-            })
-            .catch(err => {
-                statusdoc.innerText = "❌ Error de conexión";
-                statusdoc.style.color = "red";
-                btn.disabled = false;
-            });
-        }
-
-        function resetFicha() {
-            ultimoQR = "";
-            document.getElementById('preview').style.display = "none";
-            document.getElementById('btnEnviar').style.display = "none";
-            document.getElementById('status').innerText = "Esperando código QR...";
-            document.getElementById('status').style.color = "#1a73e8";
-        }
-
-        function startScanner() {
-            const html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                { fps: 10, qrbox: 250 },
-                onScanSuccess
-            );
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
