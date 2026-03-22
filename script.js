@@ -1,9 +1,10 @@
 /**
+ * ETIQUETA DE VERSIÓN: v1.1.1
  * script.js - Actualizado para sincronización JSON
  */
 const urlParams = new URLSearchParams(window.location.search);
 const folderId = urlParams.get('folderId');
-const scriptURL = "https://script.google.com/macros/s/AKfycbxPLnsQhLO7iPxSIWQV8Dz3k7zynFZQiMBG7QMCQUEFQkzf9vuN-23vHoAtaKzX9DY7/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbyBPNMXumKjCnk7_BneSPi4AKVKl22YkJXNp28CiRQLc21ndsHvhS5hGvjFaZBwhpQ/exec";
 
 let ultimoQR = ""; 
 let estadoPermiso = "IN"; 
@@ -70,20 +71,27 @@ function consultarEstadoAlumno() {
     fetch(url)
     .then(r => r.json())
     .then(res => {
-        console.log(res);
-        if (res.success && res.data.registrado) {
-            // Sincronizamos los checks con lo que ya está en el Excel
-            checkAula.checked = (res.data.oAula === "SI");
-            checkCasa.checked = (res.data.oCasa === "SI");
-            statusDiv.innerText = "Datos recuperados del registro.";
-        } else {
-            // Si es un alumno nuevo en el día, empezamos limpios
-            checkAula.checked = false;
-            checkCasa.checked = false;
-            statusDiv.innerText = "Alumno sin registro previo hoy.";
-        }
-        statusDiv.style.color = "#1a73e8";
-    })
+            if (res.success && res.data.registrado) {
+                checkAula.checked = (res.data.oAula === "SI");
+                checkCasa.checked = (res.data.oCasa === "SI");
+                
+                // NUEVO: Sincronizar el estado del botón de salida
+                estadoPermiso = res.data.enPermiso ? "OUT" : "IN";
+                actualizarBotonPermiso();
+
+                statusDiv.innerText = "Registro recuperado.";
+            } else {
+                checkAula.checked = false;
+                checkCasa.checked = false;
+                
+                // NUEVO: Resetear el botón si es alumno nuevo hoy
+                estadoPermiso = "IN";
+                actualizarBotonPermiso();
+                
+                statusDiv.innerText = "Nuevo registro para hoy.";
+            }
+            statusDiv.style.color = "#27ae60"; 
+        })
     .catch(() => {
         statusDiv.innerText = "Error al consultar estado previo.";
     });
@@ -145,7 +153,11 @@ function ejecutarAccion(accion) {
             checkCasa.checked = (res.data.oCasa === "SI");
 
             // Si es un proceso de permiso, actualizamos el botón solo tras el éxito
-            if (accion === "SALIDA" || accion === "RETORNO") {
+            if (accion === "SALIDA") {
+                estadoPermiso = "OUT";
+                actualizarBotonPermiso();
+            } else if (accion === "RETORNO") {
+                estadoPermiso = "IN";
                 actualizarBotonPermiso();
             }
 
@@ -164,14 +176,12 @@ function ejecutarAccion(accion) {
 }
 
 function actualizarBotonPermiso() {
-    if (estadoPermiso === "IN") {
+    if (estadoPermiso === "OUT") {
         btnPermiso.innerText = "RETORNO (En proceso...)";
         btnPermiso.style.background = "#2c3e50";
-        estadoPermiso = "OUT";
     } else {
         btnPermiso.innerText = "SALIDA BAÑO/AULA";
         btnPermiso.style.background = "#3498db";
-        estadoPermiso = "IN";
     }
 }
 
