@@ -1,0 +1,3 @@
+[submodule "modules/c-stamper"]
+	path = modules/c-stamper
+	url = https://github.com/hiro2233/c-stamper.git
